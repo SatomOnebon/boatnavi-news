@@ -1,15 +1,18 @@
 <!-- layouts/site.vue -->
 <template>
   <div class="l-site">
-    <!-- ヘッダーはフル幅（必要なら #header を差し込む） -->
-    <header v-if="$slots.header" class="site-header">
+    <!-- 共通ヘッダー -->
+    <SiteHeader />
+
+    <!-- ページ専用のサブヘッダー（任意） -->
+    <div v-if="$slots.header" class="site-subheader">
       <slot name="header" />
-    </header>
+    </div>
 
     <!-- main だけ 1280px でラップ -->
     <main class="site-main">
       <div class="site-main__inner">
-        <!-- aside がある時だけ 2 カラムになる -->
+        <!-- aside がある時だけ 2 カラム -->
         <div class="site-main__grid" :class="{ 'has-aside': !!$slots.aside }">
           <section class="site-content">
             <slot />
@@ -22,62 +25,68 @@
       </div>
     </main>
 
-    <!-- フッターはフル幅（必要なら #footer を差し込む） -->
-    <footer v-if="$slots.footer" class="site-footer">
-      <slot name="footer" />
-    </footer>
+    <!-- 共通フッター -->
+    <SiteFooter />
   </div>
 </template>
 
-<script setup lang="ts"></script>
+<script setup lang="ts">
+// components は自動インポート
+</script>
 
 <style scoped>
-/* ヘッダー/フッターはフル幅のまま */
-.l-site > .site-header,
-.l-site > .site-footer {
-  width: 100%;
+/* ===== main の上下余白 ===== */
+.site-main{ padding: 16px 0 40px; }
+
+/* ===== 1280px ラップ ===== */
+.site-main__inner{
+  max-width:1280px;
+  margin:0 auto;
+  padding:0 16px;
 }
 
-/* main 外枠は全幅、内側でセンタリング＆最大幅を制限 */
-.site-main { width: 100%; }
-.site-main__inner {
-  width: 100%;
-  padding-left: 16px;
-  padding-right: 16px;
+/* ===== グリッド（aside がある時だけ 2 カラム）===== */
+.site-main__grid{
+  display:grid;
+  gap:40px;
+  align-items:start;
 }
-@media (min-width: 640px) {
-  .site-main__inner {
-    max-width: 1280px;
-    margin-left: auto;
-    margin-right: auto;
+/* PC：本文 + 右 300px 固定 */
+.site-main__grid.has-aside{
+  grid-template-columns:minmax(0,1fr) 300px;
+}
+
+/* 本文はオーバーフロー防止 */
+.site-content{ min-width:0; }
+
+/* 右カラムは“内容幅”ちょうど 300px（padding/borderは含めない） */
+.site-aside{
+  width:300px;
+  box-sizing:content-box;
+  padding:0;
+}
+/* PC 時のみ追従（任意） */
+@media (min-width:1024px){
+  .site-aside{ position:sticky; top:16px; }
+}
+
+/* ===== モバイル：1 カラムで main と同幅 ===== */
+@media (max-width:1023px){
+  /* 1 カラム化 */
+  .site-main__grid,
+  .site-main__grid.has-aside{
+    grid-template-columns:1fr;
+  }
+  /* 右カラムはフル幅に */
+  .site-aside{
+    width:auto;         /* コンテナ幅いっぱい */
+    margin-top:24px;    /* 下に回った時の余白 */
   }
 }
 
-/* ===== 2カラム制御（CSS Grid） =====
-   SP: 1カラム
-   タブレット/PC: aside がある時だけ 1fr + 300px
-*/
-.site-main__grid {
-  display: grid;
-  grid-template-columns: 1fr; /* デフォは1カラム */
-  gap: 16px;
+/* ===== ページ専用サブヘッダー（任意） ===== */
+.site-subheader{
+  background:#f7fafc;
+  border-bottom:1px solid #e5e7eb;
 }
-@media (min-width: 640px) {
-  .site-main__grid.has-aside {
-    grid-template-columns: minmax(0, 1fr) 300px; /* 本文 + 右カラム300 */
-  }
-}
-
-/* 右カラムは“内容幅”ちょうど 300px に固定（余白は含めない） */
-.site-aside {
-  width: 300px;
-  box-sizing: content-box;  /* 重要：padding/border を幅に含めない */
-  padding: 0;               /* 余白は内部要素でつける想定 */
-}
-@media (min-width: 1024px) {
-  .site-aside { position: sticky; top: 16px; }
-}
-
-/* 本文領域はオーバーフロー防止 */
-.site-content { min-width: 0; }
 </style>

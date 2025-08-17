@@ -1,6 +1,13 @@
 <script setup lang="ts">
 definePageMeta({ layout: false })
 
+// ページ遷移時に #articles-top へ飛ぶようにハッシュを付ける
+const linkTo = (p: number) => ({
+  path: '/articles',
+  query: { page: p },
+  hash: '#articles-top'
+})
+
 const route = useRoute()
 const { public: pub } = useRuntimeConfig()
 
@@ -28,9 +35,7 @@ const { data, pending, error } = await useFetch<ListRes>(
 const items = computed(() => data.value?.items || [])
 const totalPages = computed(() => data.value?.totalPages || 1)
 
-function linkTo(p: number) {
-  return p <= 1 ? '/articles' : `/articles?page=${p}`
-}
+
 function jpDateTime(iso?: string) {
   if (!iso) return ''
   const d = new Date(iso)
@@ -61,21 +66,37 @@ useHead(() => {
     ]
   }
 })
+
+
+// page が変わったらスムーズスクロールで先頭へ（保険）
+watch(() => route.query.page, () => {
+  if (process.client) {
+    const el =
+      document.getElementById('articles-top') ||
+      document.querySelector('.site-main__inner') ||
+      document.body
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+})
 </script>
 
 <template>
   <NuxtLayout name="site">
     <template #default>
+      <nav class="breadcrumb" aria-label="パンくずリスト">
+            <ul class="breadcrumb__list" role="list">
+              <li class="breadcrumb__item"><NuxtLink to="/">ホーム</NuxtLink></li>
+              <li class="breadcrumb__item" aria-current="page">ニュース</li>
+            </ul>
+      </nav>
+
       <!-- セクション見出し -->
+      <h1 class="page-title">ニュース一覧</h1>
+      <!-- 一覧の先頭アンカー -->
+      <div id="articles-top" tabindex="-1"></div>
       <header class="section-head">
-        <span class="section-head__icon" aria-hidden="true">
-          <!-- シンプルなノートアイコン（SVG） -->
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
-            <path d="M6 2h9a3 3 0 0 1 3 3v14a3 3 0 0 1-3 3H6V2zm2 4h8v2H8V6zm0 4h8v2H8v-2zm0 4h8v2H8v-2z"/>
-            <path d="M4 2h2v20H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/>
-          </svg>
-        </span>
-        <h1 class="section-head__title">最新ニュース</h1>
+  
+        <h2 class="section-head__title"> ページ {{ page }} / {{ totalPages }}</h2>
       </header>
 
       <div v-if="pending" class="callout secondary">読み込み中…</div>
@@ -86,16 +107,16 @@ useHead(() => {
 
       <!-- ページネーション -->
       <nav class="pagination text-center" role="navigation" aria-label="Pagination">
-        <NuxtLink class="button hollow small" :class="{ disabled: page<=1 }" :to="linkTo(page-1)" aria-label="前のページ">« 前へ</NuxtLink>
-        <span class="current-page">ページ {{ page }} / {{ totalPages }}</span>
-        <NuxtLink class="button hollow small" :class="{ disabled: page>=totalPages }" :to="linkTo(page+1)" aria-label="次のページ">次へ »</NuxtLink>
-      </nav>
+      <NuxtLink class="button hollow small" :class="{ disabled: page<=1 }" :to="linkTo(page-1)" aria-label="前のページ">« 前へ</NuxtLink>
+      <span class="current-page">ページ {{ page }} / {{ totalPages }}</span>
+      <NuxtLink class="button hollow small" :class="{ disabled: page>=totalPages }" :to="linkTo(page+1)" aria-label="次のページ">次へ »</NuxtLink>
+    </nav>
     </template>
 
     <template #aside>
       <div class="callout">
         <strong>このページについて</strong>
-        <p class="subheader" style="margin:.5rem 0 0">ニュースは数分ごとに更新されます。</p>
+        <p class="subheader" style="margin:.5rem 0 0">----</p>
       </div>
     </template>
   </NuxtLayout>
@@ -103,7 +124,14 @@ useHead(() => {
 
 <style scoped>
 /* ページネーション既存調整 */
+h1.page-title{
+  font-size: clamp(18px, 20px, 24px); /* 既存指定を保持 */
+  line-height: 1.5;
+  font-weight: 800;
+  margin: .25rem 0 .5rem;
+}
 .pagination { margin: 20px 0; }
 .pagination .disabled { pointer-events:none; opacity:.4 }
 .current-page { margin:0 .75rem; color:#6b7280 }
+#articles-top { scroll-margin-top: 128px; }
 </style>

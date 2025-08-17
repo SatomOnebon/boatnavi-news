@@ -21,7 +21,9 @@
 .news-card__title { font-size:1rem; font-weight:700; line-height:1.35;
   display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 
-
+.button{
+  box-sizing: border-box;
+}
 
 
   /* 共通見出し */
@@ -42,3 +44,81 @@
 
 /* 余白も気持ちコンパクトにしたい場合（任意） */
 .section-head{ padding: 8px 12px; }
+@import "./section-head-fix";
+
+
+/* ===== インタラクション共通 ===== */
+:root{
+  --brand:#0b2f4a;      /* 濃紺 */
+  --brand-600:#103a5c;  /* 濃紺の少し明るい */
+  --accent:#de5a1a;     /* ログインの橙 */
+  --ring:#1aa3ff;       /* フォーカスリング */
+}
+
+/* a: 文字色は継承、hoverで下線、KB操作はfocus-visibleでリング */
+a{ color:inherit; text-decoration:none; transition:color .15s ease, opacity .15s ease; }
+a:hover{ text-decoration:underline; }
+a:focus-visible{ outline:3px solid var(--ring); outline-offset:2px; border-radius:6px; }
+
+/* ボタン系（Foundationの.buttonや自前の.login-btn等をまとめて） */
+.button,.btn,.login-btn{
+  transition:filter .15s ease, transform .06s ease, box-shadow .15s ease;
+}
+.button:hover,.btn:hover,.login-btn:hover{ filter:brightness(0.96); }
+.button:active,.btn:active,.login-btn:active{ transform:translateY(1px); }
+.button:focus-visible,.btn:focus-visible,.login-btn:focus-visible{
+  outline:3px solid var(--ring); outline-offset:2px;
+}
+.button:disabled,.btn:disabled,.login-btn[disabled],[aria-disabled="true"]{
+  opacity:.5; pointer-events:none;
+}
+
+/* グローバルナビ（スクショ準拠） */
+.global-nav__list{ list-style:none; margin:0; padding:0; }
+.global-nav__list>li{ list-style:none; margin:0; padding:0; }
+
+.global-nav .link{
+  border-bottom:3px solid transparent;
+  transition:background-color .15s ease, border-color .15s ease, color .15s ease, transform .06s ease;
+}
+.global-nav .link:hover{ background:var(--brand-600); }
+.global-nav .link.is-current{ border-bottom-color:#fff; }
+.global-nav .link:focus-visible{
+  outline:none; box-shadow:0 0 0 3px #ffffffaa inset; border-radius:4px;
+}
+.global-nav .link:active{ transform:translateY(1px); }
+
+/* ニュースカード（クリック領域のフォーカス視認性） */
+.news-card{
+  transition:box-shadow .18s ease, transform .18s ease;
+}
+.news-card:hover{ box-shadow:0 8px 20px rgba(0,0,0,.08); transform:translateY(-1px); }
+.news-card:focus-visible{ outline:none; box-shadow:0 0 0 3px var(--ring); }
+
+/* 視覚効果を苦手とする人へ */
+@media (prefers-reduced-motion: reduce){
+  *{ transition:none !important; animation:none !important; }
+}
+
+/* ========== パンくず ========== */
+.breadcrumb{
+  margin: 5px 0 15px;
+  color: #5f6062;
+  font-size: 13px;
+}
+.breadcrumb__list{
+  display:flex; flex-wrap:wrap;
+  gap: 6px;
+  list-style:none; margin:0; padding:0;
+}
+.breadcrumb__item + .breadcrumb__item::before{
+  content:'/';
+  color:#9ca3af;
+  margin: 0 2px 0 0;
+}
+.breadcrumb a{
+  color: inherit;
+  text-decoration: none;
+}
+.breadcrumb a:hover{ text-decoration: underline; }
+

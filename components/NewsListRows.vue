@@ -10,7 +10,8 @@ defineProps<{ items: Item[] }>()
 function jpDateTime(iso?: string) {
   if (!iso) return ''
   const d = new Date(iso)
-  return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 ${d.getHours()}時${d.getMinutes()}分`
+  const z = (n:number)=>n<10?'0'+n:''+n
+  return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 ${z(d.getHours())}時${z(d.getMinutes())}分`
 }
 </script>
 
@@ -19,7 +20,16 @@ function jpDateTime(iso?: string) {
     <li v-for="it in items" :key="it.id" class="news-row">
       <NuxtLink :to="it.url" class="news-row__link">
         <div class="news-row__thumb">
-          <img v-if="it.image?.src" :src="it.image.src" :alt="it.image.alt || it.title" loading="lazy" decoding="async" />
+          <img
+            v-if="it.image?.src"
+            :src="it.image.src"
+            :alt="it.image.alt || it.title"
+            loading="lazy"
+            decoding="async"
+            oncontextmenu="alert('(C) The Hochi Shimbun ');return false;"
+            onmousedown="return false;"
+            @dragstart.prevent
+          />
         </div>
         <div class="news-row__body">
           <h3 class="news-row__title">{{ it.title }}</h3>
@@ -39,7 +49,9 @@ function jpDateTime(iso?: string) {
 .news-row__link {
   display:flex; gap:12px; padding:12px 0;
   color:inherit; text-decoration:none;
+  transition: background-color .15s ease;
 }
+.news-row__link:hover { background:#fafafa; }
 
 /* サムネ（スクエア小さめ） */
 .news-row__thumb{

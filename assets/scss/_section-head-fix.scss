@@ -1,0 +1,37 @@
+/* ---- section-head の最終上書き（ズレ修正 & PCサイズ控えめ） ---- */
+.section-head{
+  display:flex;
+  align-items:center;          /* 垂直中央揃え */
+  gap:5px;                 /* アイコンとの間隔は gap に統一 */
+  background:#0b2f4a;
+  color:#fff;
+  padding:8px 12px;            /* padding を一本化 */
+  border-radius:6px;           /* 少しだけ角を大きく */
+}
+
+/* 左の白い四角（ベースラインずれ対策込み） */
+.section-head__icon{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:18px;                  /* 必要なら 16–20px で微調整 */
+  height:18px;
+  border-radius:4px;
+  background:#fff;
+  flex:0 0 auto;
+  line-height:0;               /* 余計な下余白を消す（ベースライン対策） */
+}
+.section-head__icon svg{
+  display:block;               /* SVG のベースライン隙間を排除 */
+}
+
+/* タイトル（PCでも控えめ＆常時縦中央に） */
+.section-head__title{
+  margin:0;
+  font-size:clamp(13px, 1.1vw, 16px); /* 以前より一段小さく */
+  font-weight:800;
+  line-height:1;                        /* アイコンのセンタリングと揃う */
+}
+@media (min-width:1280px){
+  .section-head__title{ font-size:16px; } /* 大画面の上限 */
+}

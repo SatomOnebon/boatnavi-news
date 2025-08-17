@@ -1,5 +1,5 @@
 import { getQuery, setHeader } from 'h3'
-import { applyCors } from '~/server/utils/cors'
+
 
 export default defineEventHandler(async (event) => {
   const cfg = useRuntimeConfig()
@@ -7,8 +7,7 @@ export default defineEventHandler(async (event) => {
   const page = toPage(q.page) || 1
   const limit = toLimit(q.limit) || 4
 
-  // CORS (GET)
-  applyCors(event, cfg.newsCorsOrigins, 'GET,OPTIONS')
+
 
   // 既存の正規化済み一覧APIを内部利用
   const base = getRequestURL(event).origin
