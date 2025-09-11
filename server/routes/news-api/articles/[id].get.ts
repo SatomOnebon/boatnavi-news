@@ -1,4 +1,4 @@
-// server/api/articles/[id].get.ts
+// server/news-api/articles/[id].get.ts
 type UpDetail = {
   news_item_id: string
   date_published?: string

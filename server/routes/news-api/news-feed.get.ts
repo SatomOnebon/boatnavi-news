@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
 
   // 既存の正規化済み一覧APIを内部利用
   const base = getRequestURL(event).origin
-  const { items } = await $fetch<{ items: any[] }>('/api/articles', {
+  const { items } = await $fetch<{ items: any[] }>('/news-api/articles', {
     baseURL: base,
     query: { page, limit }
   })

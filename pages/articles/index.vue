@@ -28,7 +28,7 @@ type Item = {
 type ListRes = { page: number; perPage: number; totalPages: number; total: number; items: Item[] }
 
 const { data, pending, error } = await useFetch<ListRes>(
-  () => `/api/articles?page=${page.value}`,
+  () => `/news-api/articles?page=${page.value}`,
   { key: () => `articles-${page.value}`, server: true, watch: [page] }
 )
 

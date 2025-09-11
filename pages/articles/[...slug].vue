@@ -20,7 +20,7 @@ type Article = {
 }
 
 const { data, pending, error } = await useFetch<Article | null>(
-  () => `/api/articles/${encodeURIComponent(id)}`,
+  () => `/news-api/articles/${encodeURIComponent(id)}`,
   { key: () => `article-${id}`, server: true, watch: [id] }
 )
 const a = computed(() => data.value || null)
@@ -114,7 +114,7 @@ type ListRes = { items: Item[]; page: number; perPage: number; totalPages: numbe
 
 const LATEST_COUNT = 6
 const { data: latestRes } = await useFetch<ListRes>(
-  () => `/api/articles?limit=${LATEST_COUNT}`,
+  () => `/news-api/articles?limit=${LATEST_COUNT}`,
   { key: 'latest-articles', server: true }
 )
 const latest = computed(() =>

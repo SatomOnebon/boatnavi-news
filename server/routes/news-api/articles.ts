@@ -23,11 +23,15 @@ type Upstream = {
 }
 
 export default defineEventHandler(async (event) => {
+  
+  
   const cfg = useRuntimeConfig()
   const q = getQuery(event)
 
   const page = toPage(q.page)              // ← NaN対策
   const limit = toLimit(q.limit)           // ← 追加
+
+
 
   const url = new URL(String(cfg.newsListApi))
   if (page) url.searchParams.set('page', String(page))

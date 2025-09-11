@@ -4,7 +4,7 @@ import { defineEventHandler, getMethod, setResponseStatus } from 'h3'
 export default defineEventHandler((event) => {
   // /api/ 配下だけCORS付与
   const url = new URL(event.node.req.url || '', 'http://localhost')
-  if (!url.pathname.startsWith('/api/')) return
+  if (!url.pathname.startsWith('/news-api/')) return
 
   // 許可オリジン（本番はドメインを入れる）
   const allow = process.env.NUXT_PUBLIC_SPA_ORIGIN || '*'
