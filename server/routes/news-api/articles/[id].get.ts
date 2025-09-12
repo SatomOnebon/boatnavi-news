@@ -1,4 +1,4 @@
-// server/news-api/articles/[id].get.ts
+// server/routes/news-api/articles/[id].get.ts
 type UpDetail = {
   news_item_id: string
   date_published?: string
@@ -19,7 +19,8 @@ type UpDetail = {
 
 export default defineEventHandler(async (event) => {
   const cfg = useRuntimeConfig()
-  const { id } = getRouterParams(event)
+  const { id } = (event.context.params || {}) as { id: string }
+
   const base = String(cfg.newsDetailApi || 'https://hochi.news/api/v1/umatoku/articles').replace(/\/+$/, '')
   const url = `${base}/${encodeURIComponent(id)}`
 
@@ -78,31 +79,29 @@ function pickFirstImgFromHtml(html:string, base:string){
 /**
  * 本文HTMLの書き換え
  * - 画像/リンクの相対パスを絶対化
- * - 写真リンク（.box_image__unit の <a>）を <span> に置換
- * - 全 <img> に oncontextmenu / onmousedown を付与（右クリック・長押しの抑止）
+ * - figure 内で「画像を含む a」を <span> に置換（キャプション等の通常リンクは温存）
+ * - 全 <img> に oncontextmenu / onmousedown を付与（右クリック・長押し抑止）
  */
 function rewriteHtml(html:string, base:string){
   if(!html) return ''
-
   let out = html
 
-  // 1) 相対 <img src> を絶対URLに
+  // 1) <img src> を絶対URL化
   out = out.replace(/(<img[^>]+src=["'])([^"']+)(["'])/gi,
     (_, a, u, z) => a + absolutize(u, base) + z)
 
-  // 2) 相対 <a href> を絶対URLに
+  // 2) <a href> を絶対URL化
   out = out.replace(/(<a[^>]+href=["'])([^"']+)(["'])/gi,
     (_, a, u, z) => a + absolutize(u, base) + z)
 
-  // 3) 画像の外側リンク（.box_image__unit）だけ <a> → <span> に置換
-  //    （<img> 単体も含め幅広くマッチ）
-  out = out.replace(
-    /<a([^>]*class=["'][^"']*box_image__unit[^"']*["'][^>]*)>([\s\S]*?)<\/a>/gi,
-    '<span$1>$2</span>'
-  )
+  // 3) figure ブロック内だけを抽出して、画像を含む a を <span> に置換
+  out = out.replace(/<figure\b[^>]*>[\s\S]*?<\/figure>/gi, (block) => {
+    return block.replace(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi, (m, attrs, inner) => {
+      return /<img\b/i.test(inner) ? `<span${attrs}>${inner}</span>` : m
+    })
+  })
 
-  // 4) すべての <img> に右クリック/長押し抑止のハンドラを付与
-  //    既に同属性があればいったん除去して重複を避ける
+  // 4) すべての <img> に右クリック/長押し抑止を付与（重複属性は除去してから付与）
   out = out.replace(/<img\b([^>]*?)(\/?)>/gi, (_m, attrs, slash) => {
     const cleaned = String(attrs).replace(/\s(oncontextmenu|onmousedown)\s*=\s*["'][^"']*["']/gi, '')
     return `<img${cleaned} oncontextmenu="alert('(C) The Hochi Shimbun ');return false;" onmousedown="return false;"${slash}>`

@@ -1,191 +1,255 @@
 <template>
-    <header class="site-header">
-      <!-- 上段：ロゴ + ログイン（既存パスそのまま想定） -->
-      <div class="site-header__top">
-        <div class="container">
-          <NuxtLink to="/" class="brand" aria-label="BOATNAVI報知 ホーム">
-            <img src="https://boatnavi.hochi.co.jp/images/large_logo.svg" alt="BOATNAVI報知" />
-          </NuxtLink>
-  
-          <a href="https://boatnavi.hochi.co.jp/login" class="login-btn">ログイン</a>
+  <header class="site-header">
+    <!-- 上段：ロゴ＋右エリア -->
+    <div class="site-header__top">
+      <div class="container">
+        <!-- ロゴ：SPAのトップへ -->
+        <NuxtLink to="/" external class="brand" aria-label="BOATNAVI報知 ホーム">
+          <img src="https://boatnavi.hochi.co.jp/images/large_logo.svg" style="height:2.625rem;" alt="BOATNAVI報知" />
+        </NuxtLink>
+
+        <!-- 右エリア：ログイン or ユーザーメニュー -->
+        <div class="top-right">
+          <!-- 未ログイン -->
+          <NuxtLink v-if="!isLoggedIn" to="/login" external class="login-btn">ログイン</NuxtLink>
+
+          <!-- ログイン時：PCはホバー/フォーカス、モバイルはクリックで開閉 -->
+          <div
+            v-else
+            class="user has-dd"
+            @keydown.esc="menuOpen=false"
+            @mouseleave="menuOpen=false"
+          >
+            <button
+              ref="chipRef"
+              class="user-chip"
+              type="button"
+              @click="toggleMenu"
+              :aria-expanded="menuOpen ? 'true' : 'false'"
+              aria-haspopup="menu"
+            >
+              <img class="user-icon" src="https://boatnavi.hochi.co.jp/images/icon_login.svg" alt="" />
+              <span class="user-name">
+                {{ displayName }}さん
+                <span class="caret" aria-hidden="true"></span>
+              </span>
+            </button>
+
+            <ul
+              class="dropdown"
+              role="menu"
+              :class="{ 'is-open': menuOpen }"
+            >
+              <li role="none">
+                <a role="menuitem" class="dd-link" href="/user">マイページ</a>
+              </li>
+              <li role="none">
+                <a role="menuitem" class="dd-link" href="/login?logout=1">ログアウト</a>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
-  
-      <!-- 下段：グローバルナビ（56px固定） -->
-      <nav class="global-nav" aria-label="グローバルナビゲーション">
-        <div class="container">
-          <ul class="global-nav__list" role="menubar">
-            <li role="none">
-              <NuxtLink to="/" class="link" exact-active-class="is-current" role="menuitem">ホーム</NuxtLink>
-            </li>
-  
-            <li role="none">
-              <NuxtLink to="/articles" class="link" active-class="is-current" role="menuitem">ニュース</NuxtLink>
-            </li>
-  
-            <!-- ▼ サブメニューあり。クリックは遷移（指定URL） -->
-            <li role="none" class="has-dd">
-              <a
-                class="link"
-                href="https://boatnavi.hochi.co.jp/day_race_list/20250817"
-                role="menuitem"
-              >
-                本日のレース
-              </a>
-  
-              <!-- ホバー/フォーカスで開くドロップダウン -->
-              <ul class="dropdown" role="menu">
-                <li role="none">
-                  <a role="menuitem" class="dd-link" href="https://boatnavi.hochi.co.jp/day_race_list/20250817">
-                    本日のレース TOP
-                  </a>
-                </li>
-                <li role="none"><a role="menuitem" class="dd-link" href="#">出走表</a></li>
-                <li role="none"><a role="menuitem" class="dd-link" href="#">結果</a></li>
-                <li role="none"><a role="menuitem" class="dd-link" href="#">オッズ</a></li>
-              </ul>
-            </li>
-  
-            <li role="none">
-              <a href="https://boatnavi.hochi.co.jp/racerranking/all" class="link" role="menuitem">賞金ランキング</a>
-            </li>
-          </ul>
-        </div>
-      </nav>
-    </header>
-  </template>
-  
-  <script setup lang="ts">
-  /* JS不要（ホバー/フォーカスで開閉） */
-  </script>
-  
-  <style scoped>
-  /* ========== レイアウト共通 ========== */
-  .container{ max-width:1280px; margin:0 auto; padding:0 16px; }
-  
-  /* ========== 上段：ロゴ帯（高さ64px） ========== */
-  .site-header__top{ background:#fff; border-bottom:1px solid #e5e7eb; }
-  .site-header__top .container{ display:flex; align-items:center; justify-content:space-between; height:64px; }
-  .brand img{ display:block; height:34px; width:auto; }
-  
-  /* ログインボタン */
-  .login-btn{
-    display:inline-flex; align-items:center; justify-content:center;
-    padding:10px 18px; background:#de5a1a; color:#fff; font-weight:700;
-    border-radius:8px; text-decoration:none;
-    transition:filter .15s ease, transform .06s ease, box-shadow .15s ease;
+    </div>
+
+    <!-- 下段：グローバルナビ -->
+    <nav class="global-nav" aria-label="グローバルナビゲーション">
+      <div class="container">
+        <ul class="global-nav__list" role="menubar">
+          <li role="none">
+            <NuxtLink to="/" external class="link" exact-active-class="is-current" role="menuitem">ホーム</NuxtLink>
+          </li>
+
+          <li role="none">
+            <NuxtLink to="/articles" class="link" active-class="is-current" role="menuitem">ニュース</NuxtLink>
+          </li>
+
+          <li role="none">
+            <a class="link" :href="`/day_race_list/${todayStr}`" role="menuitem">本日のレース</a>
+          </li>
+
+          <li role="none">
+            <a class="link" href="/racerranking/all" role="menuitem">賞金ランキング</a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+  </header>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+
+const menuOpen = ref(false)
+const chipRef = ref<HTMLButtonElement | null>(null)
+
+// 今日は yyyymmdd
+const todayStr = computed(() => {
+  const d = new Date()
+  const p = (n:number) => (n < 10 ? '0' + n : '' + n)
+  return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}`
+})
+
+// --- 修正ポイント：安全な正規表現エスケープ関数を使う ---
+function escapeRegex(src: string){
+  // 標準パターン：/[-\/\\^$*+?.()|[\]{}]/g
+  return src.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')
+}
+function getCookie(name: string){
+  if (process.server) return ''
+  const m = document.cookie.match(new RegExp('(?:^|; )' + escapeRegex(name) + '=([^;]*)'))
+  return m ? m[1] : ''
+}
+
+const user = ref<any>(null)
+if (process.client) {
+  try {
+    const raw = getCookie('__bn_user_json')
+    user.value = raw ? JSON.parse(decodeURIComponent(raw)) : null
+  } catch {
+    user.value = null
   }
-  .login-btn:hover{ filter:brightness(0.96); }
-  .login-btn:active{ transform:translateY(1px); }
-  .login-btn:focus-visible{ outline:3px solid #1aa3ff; outline-offset:2px; border-radius:8px; }
-  
-  /* ========== 下段：グローバルナビ（メインとサブを統一） ========== */
-  .global-nav{ background:#0b2f4a; color:#fff; border-bottom:1px solid rgba(255,255,255,.25); }
-  
-  /* メインメニューの横幅を統一（デスクトップ） */
-  .global-nav{ --gn-item-w: 160px; }
-  
-  /* 画面幅に応じた微調整 */
-  @media (min-width:1440px){ .global-nav{ --gn-item-w: 176px; } }
-  @media (min-width:1024px) and (max-width:1279px){ .global-nav{ --gn-item-w: 148px; } }
-  
-  .global-nav .container{ height:56px; display:flex; align-items:center; }
-  
-  /* UL/LI リセット + 行並び */
-  .global-nav__list{
-    list-style:none; margin:0; padding:0; height:100%;
-    display:flex; align-items:stretch; gap:8px;
-    justify-content:flex-start; flex-wrap:nowrap;
-  }
-  .global-nav__list > li{
-    list-style:none; margin:0; padding:0; position:relative;
-    flex:0 0 var(--gn-item-w); /* 幅統一 */
-  }
-  
-  /* メインタブのリンク（デスクトップ） */
-  .global-nav .link{
-    width:100%;
-    height:56px; padding:0 12px;
-    display:flex; align-items:center; justify-content:center;
-    color:#fff; text-decoration:none; font-weight:800;
-    border-bottom:3px solid transparent;
-    font-size:15px; line-height:1;   /* 高さ56pxに合わせて控えめに */
-    white-space:nowrap; text-overflow:ellipsis; overflow:hidden;
-    transition:background-color .15s ease, border-color .15s ease, color .15s ease, transform .06s ease;
-  }
-  .global-nav .link:hover{ background:#103a5c; }
-  .global-nav .link.is-current{ border-bottom-color:#fff; }
-  .global-nav .link:focus-visible{ outline:none; box-shadow:0 0 0 3px #ffffffaa inset; border-radius:4px; }
-  .global-nav .link:active{ transform:translateY(1px); }
-  
-  /* 親タブに“下向き三角”を付与（デスクトップのみ見せる） */
-  .global-nav__list > li.has-dd > a::after{
-    content:""; display:inline-block; margin-left:8px;
-    border-left:6px solid transparent; border-right:6px solid transparent; border-top:6px solid currentColor;
-  }
-  
-  /* ========== サブメニュー（ドロップダウン） ========== */
-  /* サブメニューのポチ消し */
-  .global-nav__list ul, .global-nav__list ul li{ list-style:none; margin:0; padding:0; }
-  
-  /* ドロップダウン本体：メイン同配色（初期：非表示） */
-  .global-nav__list > li > .dropdown{
-    position:absolute; left:0; top:100%;
-    min-width:220px; margin-top:8px; padding:0;
-    background:#0b2f4a; color:#fff;
-    border:1px solid rgba(255,255,255,.20); border-radius:10px;
-    box-shadow:0 10px 24px rgba(0,0,0,.25);
-    opacity:0; visibility:hidden; transform:translateY(8px);
-    transition:opacity .15s ease, transform .15s ease, visibility .15s step-end;
-    z-index:1000;
-  }
-  
-  /* ホバー or フォーカスで開く（親aクリックは遷移のまま） */
-  .global-nav__list > li:hover > .dropdown,
-  .global-nav__list > li:focus-within > .dropdown{
+}
+
+const isLoggedIn = computed(() => !!user.value && (!!user.value.nickname || !!user.value.email))
+const displayName = computed(() =>
+  user.value?.nickname || user.value?.name || (user.value?.email ? String(user.value.email).split('@')[0] : 'ユーザー')
+)
+
+// クリックで開閉（スマホ用）。閉じる時にボタンのフォーカスも外す。
+function toggleMenu(){
+  menuOpen.value = !menuOpen.value
+  if (!menuOpen.value) chipRef.value?.blur()
+}
+
+// 画面外クリックで閉じる
+function onDocClick(e: MouseEvent){
+  const t = e.target as HTMLElement
+  if (!t.closest('.user.has-dd')) menuOpen.value = false
+}
+onMounted(() => document.addEventListener('click', onDocClick, { capture: true }))
+onUnmounted(() => document.removeEventListener('click', onDocClick, { capture: true } as any))
+</script>
+
+<style scoped>
+.container{ max-width:1280px; margin:0 auto; padding:0 16px; }
+
+/* ========== 上段：ロゴ帯（高さ64px） ========== */
+.site-header__top{ background:#fff; border-bottom:1px solid #e5e7eb; }
+.site-header__top .container{ display:flex; align-items:center; justify-content:space-between; height:64px; }
+.brand img{ display:block; height:34px; width:auto; }
+
+/* 右側 */
+.top-right{ display:flex; align-items:center; gap:12px; }
+
+/* ログインボタン */
+.login-btn{
+  display:inline-flex; align-items:center; justify-content:center;
+  padding:10px 18px; background:#de5a1a; color:#fff; font-weight:700;
+  border-radius:8px; text-decoration:none;
+  transition:filter .15s ease, transform .06s ease, box-shadow .15s ease;
+}
+.login-btn:hover{ filter:brightness(0.96); }
+.login-btn:active{ transform:translateY(1px); }
+.login-btn:focus-visible{ outline:3px solid #1aa3ff; outline-offset:2px; border-radius:8px; }
+
+/* ユーザーChip（白ベース） */
+.user.has-dd{ position:relative; }
+.user-chip{
+  display:inline-flex; align-items:center; gap:8px;
+  min-height:40px; padding:8px 12px;
+  background:#fff; color:#111; font-weight:800; border-radius:999px;
+  border:1px solid #e5e7eb; cursor:pointer;
+}
+.user-chip:hover{ background:#f3f4f6; }
+.user-chip:focus-visible{ outline:3px solid #1aa3ff; outline-offset:2px; border-radius:999px; }
+.user-icon{ width:18px; height:18px; display:block; }
+
+/* ▼ ニックネームの後ろの下向き三角（回転しない固定） */
+.user-name{
+  display:inline-flex; align-items:center; line-height:1;
+}
+.user-name .caret{
+  display:inline-block;
+  width:0; height:0; margin-left:6px;
+  border-left:5px solid transparent;
+  border-right:5px solid transparent;
+  border-top:6px solid currentColor;
+}
+
+/* ドロップダウン（白ベース） */
+.dropdown{
+  position:absolute; right:0; top:calc(100% + 8px);
+  min-width:180px; margin:0; padding:4px;
+  list-style:none; background:#fff; color:#111;
+  border:1px solid #e5e7eb; border-radius:10px;
+  box-shadow:0 10px 24px rgba(0,0,0,.12);
+  opacity:0; visibility:hidden; transform:translateY(8px);
+  transition:opacity .15s ease, transform .15s ease, visibility .15s step-end;
+  z-index:1000;
+}
+
+/* ▼ PCのみホバー/フォーカスで開く */
+@media (hover:hover) and (pointer:fine){
+  .user.has-dd:hover .dropdown,
+  .user.has-dd:focus-within .dropdown{
     opacity:1; visibility:visible; transform:translateY(0);
     transition:opacity .15s ease, transform .15s ease, visibility 0s;
   }
-  
-  /* サブメニューの各リンク：メイン風（高さ/色/太字） */
-  .global-nav__list > li > .dropdown > li > a,
-  .dd-link{
-    display:flex; align-items:center; justify-content:flex-start;
-    height:56px; padding:0 12px;
-    color:#fff; text-decoration:none; font-weight:800;
-    border-left:3px solid transparent;
-    font-size:15px; line-height:1;
-    transition:background-color .15s ease, color .15s ease, border-color .15s ease, transform .06s ease;
-  }
-  .global-nav__list > li > .dropdown > li > a:hover,
-  .dd-link:hover{
-    background:#103a5c; color:#fff; border-left-color:#ffffff44;
-  }
-  .global-nav__list > li > .dropdown > li > a:focus-visible,
-  .dd-link:focus-visible{
-    outline:3px solid #1aa3ff; outline-offset:-3px; border-radius:6px;
-  }
-  
-  /* ========== モバイル最適化（サブメニューは表示しない / 高さ48px固定 / フォント小さめ） ========== */
-  @media (max-width:767px){
-    .site-header__top .container{ height:56px; }     /* ロゴ帯を少し低く（任意） */
-    .brand img{ height:28px; }
-  
-    .global-nav .container{ height:48px; }
-    .global-nav__list{ gap:6px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
-    .global-nav__list::-webkit-scrollbar{ display:none; }
-  
-    /* SPはメニュー可変幅に戻す */
-    .global-nav__list > li{ flex:0 0 auto; }
-  
-    /* メニューの高さ48px固定 + 文字サイズもう少し小さめ */
-    .global-nav .link{ height:48px; padding:0 10px; font-size:13px; }
-  
-    /* サブメニューはSPでは非表示 */
-    .global-nav__list > li > .dropdown{ display:none !important; }
-    .dd-link{ height:48px; padding:0 10px; font-size:13px; }
-  
-    /* モバイルでは三角を表示しない */
-    .global-nav__list > li.has-dd > a::after{ content:none; display:none; }
-  }
-  </style>
+}
+
+/* ▼ モバイルは .is-open クラスのみで開閉 */
+.dropdown.is-open{
+  opacity:1; visibility:visible; transform:translateY(0);
+  transition:opacity .15s ease, transform .15s ease, visibility 0s;
+}
+
+.dd-link{
+  display:flex; align-items:center; justify-content:flex-start;
+  height:44px; padding:0 12px;
+  color:inherit; text-decoration:none; font-weight:800;
+  border-left:3px solid transparent; border-radius:6px;
+}
+.dd-link:hover{ background:#f3f4f6; color:inherit; border-left-color:#d1d5db; }
+.dd-link:focus-visible{ outline:3px solid #1aa3ff; outline-offset:-3px; }
+
+/* ========== 下段：グローバルナビ ========== */
+.global-nav{ background:#0b2f4a; color:#fff; border-bottom:1px solid rgba(255,255,255,.25); }
+.global-nav{ --gn-item-w: 160px; }
+@media (min-width:1440px){ .global-nav{ --gn-item-w: 176px; } }
+@media (min-width:1024px) and (max-width:1279px){ .global-nav{ --gn-item-w: 148px; } }
+
+.global-nav .container{ height:56px; display:flex; align-items:center; }
+.global-nav__list{
+  list-style:none; margin:0; padding:0; height:100%;
+  display:flex; align-items:stretch; gap:8px;
+  justify-content:flex-start; flex-wrap:nowrap;
+}
+.global-nav__list > li{ position:relative; flex:0 0 var(--gn-item-w); }
+
+.link{
+  width:100%; height:56px; padding:0 12px;
+  display:flex; align-items:center; justify-content:center;
+  color:#fff; text-decoration:none; font-weight:800;
+  border-bottom:3px solid transparent;
+  font-size:15px; line-height:1;
+  white-space:nowrap; text-overflow:ellipsis; overflow:hidden;
+  transition:background-color .15s ease, border-color .15s ease, color .15s ease, transform .06s ease;
+}
+.link:hover{ background:#103a5c; }
+.link.is-current{ border-bottom-color:#fff; }
+.link:focus-visible{ outline:none; box-shadow:0 0 0 3px #ffffffaa inset; border-radius:4px; }
+.link:active{ transform:translateY(1px); }
+
+/* モバイル最適化 */
+@media (max-width:767px){
+  .site-header__top .container{ height:56px; }
+  .brand img{ height:28px; }
+
+  .global-nav .container{ height:48px; }
+  .global-nav__list{ gap:6px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+  .global-nav__list::-webkit-scrollbar{ display:none; }
+  .global-nav__list > li{ flex:0 0 auto; }
+  .link{ height:48px; padding:0 10px; font-size:13px; }
+}
+</style>

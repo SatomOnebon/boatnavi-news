@@ -85,7 +85,7 @@ watch(() => route.query.page, () => {
     <template #default>
       <nav class="breadcrumb" aria-label="パンくずリスト">
             <ul class="breadcrumb__list" role="list">
-              <li class="breadcrumb__item"><NuxtLink to="/">ホーム</NuxtLink></li>
+              <li class="breadcrumb__item"><NuxtLink to="/" external>ホーム</NuxtLink></li>
               <li class="breadcrumb__item" aria-current="page">ニュース</li>
             </ul>
       </nav>
