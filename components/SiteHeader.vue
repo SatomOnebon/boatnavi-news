@@ -1,9 +1,10 @@
+<!-- components/SiteHeader.vue -->
 <template>
   <header class="site-header">
     <!-- 上段：ロゴ＋右エリア -->
     <div class="site-header__top">
       <div class="container">
-        <!-- ロゴ：SPAのトップへ -->
+        <!-- ロゴ：SPAトップへ -->
         <NuxtLink to="/" external class="brand" aria-label="BOATNAVI報知 ホーム">
           <img src="https://boatnavi.hochi.co.jp/images/large_logo.svg" style="height:2.625rem;" alt="BOATNAVI報知" />
         </NuxtLink>
@@ -11,9 +12,14 @@
         <!-- 右エリア：ログイン or ユーザーメニュー -->
         <div class="top-right">
           <!-- 未ログイン -->
-          <NuxtLink v-if="!isLoggedIn" to="/login" external class="login-btn">ログイン</NuxtLink>
+          <NuxtLink
+            v-if="!isLoggedIn"
+            to="/login"
+            external
+            class="login-btn"
+          >ログイン</NuxtLink>
 
-          <!-- ログイン時：PCはホバー/フォーカス、モバイルはクリックで開閉 -->
+          <!-- ログイン時：PCはホバー/フォーカス、SPはクリックで開閉 -->
           <div
             v-else
             class="user has-dd"
@@ -35,16 +41,19 @@
               </span>
             </button>
 
-            <ul
-              class="dropdown"
-              role="menu"
-              :class="{ 'is-open': menuOpen }"
-            >
+            <ul class="dropdown" role="menu" :class="{ 'is-open': menuOpen }">
               <li role="none">
                 <a role="menuitem" class="dd-link" href="/user">マイページ</a>
               </li>
               <li role="none">
-                <a role="menuitem" class="dd-link" href="/login?logout=1">ログアウト</a>
+                <NuxtLink
+                  :to="`/login?logout=1&return=${encodeURIComponent($route.fullPath)}`"
+                  external
+                  role="menuitem"
+                  class="dd-link"
+                >
+                  ログアウト
+                </NuxtLink>
               </li>
             </ul>
           </div>
@@ -79,62 +88,124 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRequestHeaders } from '#app'
 
 const menuOpen = ref(false)
 const chipRef = ref<HTMLButtonElement | null>(null)
 
-// 今日は yyyymmdd
+/* 今日の yyyymmdd */
 const todayStr = computed(() => {
   const d = new Date()
   const p = (n:number) => (n < 10 ? '0' + n : '' + n)
   return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}`
 })
 
-// --- 修正ポイント：安全な正規表現エスケープ関数を使う ---
-function escapeRegex(src: string){
-  // 標準パターン：/[-\/\\^$*+?.()|[\]{}]/g
-  return src.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')
-}
-function getCookie(name: string){
-  if (process.server) return ''
-  const m = document.cookie.match(new RegExp('(?:^|; )' + escapeRegex(name) + '=([^;]*)'))
-  return m ? m[1] : ''
-}
-
-const user = ref<any>(null)
-if (process.client) {
-  try {
-    const raw = getCookie('__bn_user_json')
-    user.value = raw ? JSON.parse(decodeURIComponent(raw)) : null
-  } catch {
-    user.value = null
+/* Cookie utils */
+function parseCookieString(raw: string | undefined | null){
+  const out: Record<string,string> = {}
+  if (!raw) return out
+  for (const part of raw.split(';')) {
+    const [k, ...rest] = part.split('=')
+    const key = k?.trim()
+    if (!key) continue
+    out[key] = rest.join('=').trim()
   }
+  return out
+}
+function readUserFromCookieValue(val: string | undefined){
+  if (!val) return null
+  try { return JSON.parse(decodeURIComponent(val)) } catch { return null }
 }
 
-const isLoggedIn = computed(() => !!user.value && (!!user.value.nickname || !!user.value.email))
+/* SSR 初期化 */
+function readUserSSR(){
+  const h = useRequestHeaders(['cookie'])
+  const map = parseCookieString(h.cookie || '')
+  return readUserFromCookieValue(map['__bn_user_json'])
+}
+
+/* Client 同期 */
+function readUserClient(){
+  const map = parseCookieString(document.cookie || '')
+  return readUserFromCookieValue(map['__bn_user_json'])
+}
+
+/* ユーザー状態：SSR初期 + Client再同期 */
+const user = ref<any>(process.server ? readUserSSR() : null)
+
+let pollTimer: number | null = null
+let lastCookie = ''
+
+function resyncFromCookie(){
+  try {
+    const now = document.cookie
+    if (now === lastCookie) return
+    lastCookie = now
+    const u = readUserClient()
+    user.value = u
+  } catch { /* noop */ }
+}
+
+/* 画面外クリックで閉じる */
+const onDocClick = (e: MouseEvent) => {
+  const t = e.target as HTMLElement
+  if (!t.closest('.user.has-dd')) menuOpen.value = false
+}
+
+onMounted(() => {
+  // 初回即同期
+  if (process.client) resyncFromCookie()
+
+  // 軽いポーリング（2秒おき 30秒間）
+  if (process.client) {
+    let count = 0
+    pollTimer = window.setInterval(() => {
+      resyncFromCookie()
+      if (++count >= 15 && pollTimer) { clearInterval(pollTimer); pollTimer = null }
+    }, 2000) as any
+
+    // タブ復帰で同期
+    const onVis = () => { if (document.visibilityState === 'visible') resyncFromCookie() }
+    document.addEventListener('visibilitychange', onVis)
+
+    // デバッグヘルパ
+    ;(window as any).__bn_user = () => ({ parsed: user.value, cookie: document.cookie })
+
+    // クリーンアップ登録
+    onUnmounted(() => {
+      document.removeEventListener('visibilitychange', onVis)
+      if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
+    })
+  }
+
+  document.addEventListener('click', onDocClick, { capture: true })
+})
+onUnmounted(() => {
+  document.removeEventListener('click', onDocClick, { capture: true } as any)
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
+})
+
+/* 表示判定 */
+const isLoggedIn = computed(() =>
+  !!user.value && (!!user.value.nickname || !!user.value.name || !!user.value.email)
+)
 const displayName = computed(() =>
-  user.value?.nickname || user.value?.name || (user.value?.email ? String(user.value.email).split('@')[0] : 'ユーザー')
+  user.value?.nickname ||
+  user.value?.name ||
+  (user.value?.email ? String(user.value.email).split('@')[0] : 'ユーザー')
 )
 
-// クリックで開閉（スマホ用）。閉じる時にボタンのフォーカスも外す。
+/* ドロップダウン（SPクリックトグル） */
 function toggleMenu(){
   menuOpen.value = !menuOpen.value
   if (!menuOpen.value) chipRef.value?.blur()
 }
-
-// 画面外クリックで閉じる
-function onDocClick(e: MouseEvent){
-  const t = e.target as HTMLElement
-  if (!t.closest('.user.has-dd')) menuOpen.value = false
-}
-onMounted(() => document.addEventListener('click', onDocClick, { capture: true }))
-onUnmounted(() => document.removeEventListener('click', onDocClick, { capture: true } as any))
 </script>
 
 <style scoped>
 .container{ max-width:1280px; margin:0 auto; padding:0 16px; }
 
-/* ========== 上段：ロゴ帯（高さ64px） ========== */
+/* 上段：ロゴ帯 */
 .site-header__top{ background:#fff; border-bottom:1px solid #e5e7eb; }
 .site-header__top .container{ display:flex; align-items:center; justify-content:space-between; height:64px; }
 .brand img{ display:block; height:34px; width:auto; }
@@ -165,10 +236,8 @@ onUnmounted(() => document.removeEventListener('click', onDocClick, { capture: t
 .user-chip:focus-visible{ outline:3px solid #1aa3ff; outline-offset:2px; border-radius:999px; }
 .user-icon{ width:18px; height:18px; display:block; }
 
-/* ▼ ニックネームの後ろの下向き三角（回転しない固定） */
-.user-name{
-  display:inline-flex; align-items:center; line-height:1;
-}
+/* ニックネーム＋下向き三角 */
+.user-name{ display:inline-flex; align-items:center; line-height:1; }
 .user-name .caret{
   display:inline-block;
   width:0; height:0; margin-left:6px;
@@ -188,8 +257,7 @@ onUnmounted(() => document.removeEventListener('click', onDocClick, { capture: t
   transition:opacity .15s ease, transform .15s ease, visibility .15s step-end;
   z-index:1000;
 }
-
-/* ▼ PCのみホバー/フォーカスで開く */
+/* PCはホバー/フォーカスで開く */
 @media (hover:hover) and (pointer:fine){
   .user.has-dd:hover .dropdown,
   .user.has-dd:focus-within .dropdown{
@@ -197,8 +265,7 @@ onUnmounted(() => document.removeEventListener('click', onDocClick, { capture: t
     transition:opacity .15s ease, transform .15s ease, visibility 0s;
   }
 }
-
-/* ▼ モバイルは .is-open クラスのみで開閉 */
+/* SPは .is-open で開閉 */
 .dropdown.is-open{
   opacity:1; visibility:visible; transform:translateY(0);
   transition:opacity .15s ease, transform .15s ease, visibility 0s;
@@ -213,7 +280,7 @@ onUnmounted(() => document.removeEventListener('click', onDocClick, { capture: t
 .dd-link:hover{ background:#f3f4f6; color:inherit; border-left-color:#d1d5db; }
 .dd-link:focus-visible{ outline:3px solid #1aa3ff; outline-offset:-3px; }
 
-/* ========== 下段：グローバルナビ ========== */
+/* 下段：グローバルナビ */
 .global-nav{ background:#0b2f4a; color:#fff; border-bottom:1px solid rgba(255,255,255,.25); }
 .global-nav{ --gn-item-w: 160px; }
 @media (min-width:1440px){ .global-nav{ --gn-item-w: 176px; } }
@@ -245,7 +312,6 @@ onUnmounted(() => document.removeEventListener('click', onDocClick, { capture: t
 @media (max-width:767px){
   .site-header__top .container{ height:56px; }
   .brand img{ height:28px; }
-
   .global-nav .container{ height:48px; }
   .global-nav__list{ gap:6px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
   .global-nav__list::-webkit-scrollbar{ display:none; }
