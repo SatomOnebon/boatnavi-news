@@ -40,7 +40,8 @@ export default defineNuxtConfig({
       public: {
         siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3000',
         newsImageBase: process.env.NUXT_PUBLIC_NEWS_IMAGE_BASE || 'https://hochi.news/',
-        spaOrigin: process.env.NUXT_PUBLIC_SPA_ORIGIN || '/'
+        spaOrigin: process.env.NUXT_PUBLIC_SPA_ORIGIN || '/',
+        gaId: process.env.NUXT_PUBLIC_GA_ID || ''
       }
     },
 
@@ -58,7 +59,7 @@ export default defineNuxtConfig({
         }
       }
     }
-  }
+  },
 
  
 })
