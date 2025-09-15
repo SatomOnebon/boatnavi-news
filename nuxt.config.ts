@@ -41,7 +41,16 @@ export default defineNuxtConfig({
         siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3000',
         newsImageBase: process.env.NUXT_PUBLIC_NEWS_IMAGE_BASE || 'https://hochi.news/',
         spaOrigin: process.env.NUXT_PUBLIC_SPA_ORIGIN || '/',
-        gaId: process.env.NUXT_PUBLIC_GA_ID || ''
+        gaId: process.env.NUXT_PUBLIC_GA_ID || '',
+        piano: {
+          espSiteId: Number(process.env.NUXT_PUBLIC_PIANO_ESP_SITE_ID || 40),
+          aid: process.env.NUXT_PUBLIC_PIANO_AID || 'oYdNX56vpj',
+          cxenseSiteId: process.env.NUXT_PUBLIC_PIANO_CXENSE_SITE_ID || '1144233404304068691',
+          sandbox: process.env.NUXT_PUBLIC_PIANO_SANDBOX === 'true' ? true : false,
+          endpoint: process.env.NUXT_PUBLIC_PIANO_ENDPOINT || 'https://buy-ap.piano.io/api/v3',
+          pianoIdUrl: process.env.NUXT_PUBLIC_PIANO_ID_URL || 'https://id-ap.piano.io',
+          espEndpoint: process.env.NUXT_PUBLIC_PIANO_ESP_ENDPOINT || 'https://api-esp-ap.piano.io'
+        }
       }
     },
 
