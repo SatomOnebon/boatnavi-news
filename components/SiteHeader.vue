@@ -6,7 +6,7 @@
       <div class="container">
         <!-- ロゴ：SPAトップへ -->
         <NuxtLink to="/" external class="brand" aria-label="BOATNAVI報知 ホーム">
-          <img src="https://boatnavi.hochi.co.jp/images/large_logo.svg" style="height:2.625rem;" alt="BOATNAVI報知" />
+          <img class="logo" src="https://boatnavi.hochi.co.jp/images/large_logo.svg"  alt="BOATNAVI報知" />
         </NuxtLink>
 
         <!-- 右エリア：ログイン or ユーザーメニュー -->
@@ -207,8 +207,8 @@ function toggleMenu(){
 
 /* 上段：ロゴ帯 */
 .site-header__top{ background:#fff; border-bottom:1px solid #e5e7eb; }
-.site-header__top .container{ display:flex; align-items:center; justify-content:space-between; height:64px; }
-.brand img{ display:block; height:34px; width:auto; }
+.site-header__top .container{ display:flex; align-items:center; justify-content:space-between; height:65px; }
+.brand img{ display:block; height:42px; width:auto; }
 
 /* 右側 */
 .top-right{ display:flex; align-items:center; gap:12px; }
@@ -317,5 +317,13 @@ function toggleMenu(){
   .global-nav__list::-webkit-scrollbar{ display:none; }
   .global-nav__list > li{ flex:0 0 auto; }
   .link{ height:48px; padding:0 10px; font-size:13px; }
+  .brand img{ display:block; height:37px; width:auto; }
+  .login-btn{
+    font-size: 0.7rem;
+    padding-top:5px;
+    padding-bottom:5px;
+    min-height:44px;
+    min-width:84px;
+  }
 }
 </style>
