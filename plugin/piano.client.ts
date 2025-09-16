@@ -1,65 +1,45 @@
+// plugins/piano.client.ts
+// クライアント専用：SSRでは実行しない
+declare global {
+  interface Window {
+    tp?: any[];
+  }
+}
+
+function injectScript(src: string, async = true) {
+  const s = document.createElement('script')
+  s.type = 'text/javascript'
+  s.async = async
+  s.src = src
+  const b = document.getElementsByTagName('script')[0]
+  b.parentNode?.insertBefore(s, b)
+  return s
+}
+
 export default defineNuxtPlugin(() => {
-    let booted = false
-    let loading: Promise<void> | null = null
-  
-    const loadScript = (src: string) =>
-      new Promise<void>((resolve, reject) => {
-        const s = document.createElement('script')
-        s.src = src
-        s.async = true
-        s.onload = () => resolve()
-        s.onerror = (e) => reject(e)
-        document.head.appendChild(s)
-      })
-  
-    const ensureInit = async () => {
-      if (booted) return
-      if (loading) return loading
-  
-      const cfg = useRuntimeConfig().public.piano as any
-  
-      ;(window as any).tp = (window as any).tp || []
-      const tp: any[] = (window as any).tp
-      ;(window as any).PianoESPConfig = { id: Number(cfg.espSiteId || 40) }
-  
-      tp.push(['setTags', ['ボートレース']])
-      tp.push(['setAid', cfg.aid])
-      tp.push(['setCxenseSiteId', cfg.cxenseSiteId])
-      tp.push(['setSandbox', !!cfg.sandbox])
-      tp.push(['setUseTinypassAccounts', false])
-      tp.push(['setUsePianoIdUserProvider', false])
-      tp.push(['setUsePianoIdLiteUserProvider', true])
-      tp.push(['setEndpoint', cfg.endpoint])
-      tp.push(['setPianoIdUrl', cfg.pianoIdUrl])
-      tp.push(['setEspEndpoint', cfg.espEndpoint])
-  
-      loading = loadScript('https://code.piano.io/api/tinypass.min.js')
-        .then(() => {
-          tp.push(['init', () => { (window as any).tp.experience.init() }])
-          booted = true
-        })
-        .finally(() => { loading = null })
-  
-      return loading
+  if (typeof window === 'undefined') return
+
+  // window.tp は配列として初期化
+  window.tp = window.tp || []
+
+  // ── Adblock 検知（Piano推奨スニペット）※原文そのまま移植 ──
+  ;(function(d, c) {
+    d.cookie = '__adblocker=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/'
+    const mark = function(adblocker: boolean) {
+      const t = new Date()
+      t.setTime(t.getTime() + 60 * 5 * 1e3)
+      d.cookie = '__adblocker=' + (adblocker ? 'true' : 'false') + '; expires=' + t.toUTCString() + '; path=/'
     }
-  
-    /** SPA の this.pianoSend と互換の関数 */
-    const pianoSend = async (...tags: string[]) => {
-      await ensureInit()
-      const tp: any[] = (window as any).tp || []
-      // 追加タグ（先頭固定タグ + 引数）
-      const merged = ['ボートレース', ...tags]
-      tp.push(['setTags', merged])
-  
-      // cxense がいれば送る（SPA と同じ挙動）
-      try { (window as any).cxSendEvents?.() } catch {}
-  
-      tp.push(['init', () => { (window as any).tp.experience.execute() }])
-    }
-  
-    return {
-      provide: {
-        pianoSend
-      }
-    }
-  })
+    const s = d.createElement(c)
+    s.async = true
+    s.src = '//www.npttech.com/advertising.js'
+    s.onerror = function() { mark(true) }
+    const b = d.getElementsByTagName(c)[0]
+    b.parentNode?.insertBefore(s, b)
+  })(document, 'script')
+
+  // ── Piano Experience ローダ（APリージョン） ──
+  injectScript('https://experience-ap.piano.io/xbuilder/experience/load?aid=oYdNX56vpj')
+
+  // ここで即 init はしない（JWT 連携後に init する）
+})

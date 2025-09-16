@@ -114,7 +114,7 @@ a:focus-visible{ outline:3px solid var(--ring); outline-offset:2px; border-radiu
 .breadcrumb__item + .breadcrumb__item::before{
   content:'/';
   color:#9ca3af;
-  margin: 0 2px 0 0;
+  margin: 0 5px 0 0;
 }
 .breadcrumb a{
   color: inherit;

@@ -31,7 +31,7 @@ function human(iso?: string) {
   return `${d.getFullYear()}/${z(d.getMonth()+1)}/${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}`
 }
 
-// 先頭20文字で省略（サロゲートペア対応）
+// 先頭15文字で省略（サロゲートペア対応）
 const MAX_CRUMB_TITLE = 15
 function truncateText(text = '', max = MAX_CRUMB_TITLE) {
   const arr = Array.from(text)
@@ -39,67 +39,151 @@ function truncateText(text = '', max = MAX_CRUMB_TITLE) {
 }
 const crumbTitle = computed(() => truncateText(a.value?.title || ''))
 
+// JST固定＋記事IDフォールバックで安全に分解
+function jstParts(dateInput?: string | null, articleIdForFallback?: string | null) {
+  let src = (dateInput || '').trim()
 
+  // publishedAt 等が空なら、記事ID先頭 YYYYMMDD から 00:00:00 を構成
+  if (!src && articleIdForFallback) {
+    const m = /^(\d{4})(\d{2})(\d{2})/.exec(articleIdForFallback)
+    if (m) src = `${m[1]}-${m[2]}-${m[3]}T00:00:00+09:00`
+  }
+  if (!src) return null
+
+  // 「日付のみ」→ JST 00:00:00 付与
+  if (/^\d{4}-\d{2}-\d{2}$/.test(src)) {
+    src = `${src}T00:00:00+09:00`
+  }
+  // 「TZ無し日時」→ +09:00 を付与（スペース/T 両対応）
+  else if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}$/.test(src)) {
+    src = src.replace(' ', 'T') + '+09:00'
+  }
+
+  const d = new Date(src)
+  if (isNaN(d.getTime())) return null
+
+  const dtf = new Intl.DateTimeFormat('ja-JP', {
+    timeZone: 'Asia/Tokyo',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  })
+  const parts = Object.fromEntries(dtf.formatToParts(d).map(p => [p.type, p.value]))
+  const Y = parts.year, M = parts.month, D = parts.day
+  const h = parts.hour, m = parts.minute, s = parts.second
+  if (!Y || !M || !D || !h || !m || !s) return null
+
+  return {
+    year: Number(Y),                         // 例: 2025
+    pubmonth: `${Y}${M}`,                   // 例: 202509
+    pubday:   `${Y}${M}${D}`,               // 例: 20250916
+    isoJst:   `${Y}-${M}-${D}T${h}:${m}:${s}+09:00`, // 例: 2025-09-16T22:25:00+09:00
+  }
+}
+
+// 相対URLを絶対化
+function absUrl(src?: string, base?: string) {
+  if (!src) return ''
+  try {
+    const u = new URL(src)
+    return u.toString()
+  } catch (_) {
+    const b = (base || '').replace(/\/+$/, '')
+    const s = src.startsWith('/') ? src : `/${src}`
+    return `${b}${s}`
+  }
+}
+
+// 本文テキスト化（メタ description 用）
 function htmlToText(html = '') {
-  // script/style を除去 → タグを除去 → 空白整形 → 主要なエンティティをデコード
   const noBlocks = html
     .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<style[\s\S]*?<\/style>/gi, '');
-  const stripped = noBlocks.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+  const stripped = noBlocks.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
   return stripped
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'");
+    .replace(/&#39;/g, "'")
 }
 
+// 本文を cXense コメントで囲う（重複防止付き）
+const wrappedBodyHtml = computed(() => {
+  const html = a.value?.bodyHtml || ''
+  if (/<!--\s*cxenseparse_start\s*-->/.test(html)) return html
+  return `<!-- cxenseparse_start -->\n${html}\n<!-- cxenseparse_end -->`
+})
+
 const description = computed(() => {
-  const txt = htmlToText(a.value?.bodyHtml || '');
-  if (txt) return txt.length > 100 ? txt.slice(0, 100) + '…' : txt;
-  // 本文が空なら summary にフォールバック
-  return a.value?.summary || '';
-});
+  const txt = htmlToText(a.value?.bodyHtml || '')
+  if (txt) return txt.length > 100 ? txt.slice(0, 100) + '…' : txt
+  return a.value?.summary || ''
+})
 
+// Head
 useHead(() => {
-  const t = a.value?.title || '記事';
-  const d = description.value; // ← ここを本文先頭100文字に
-  const base = pub.siteUrl.replace(/\/+$/, '');
-  const url  = `${base}/articles/${encodeURIComponent(id)}.html`;
-  const img  = a.value?.image?.src || `${base}/ogp.png`;
+  const t = a.value?.title || '記事'
+  const d = description.value
+  const base = pub.siteUrl.replace(/\/+$/, '')
+  const url  = `${base}/articles/${encodeURIComponent(id)}.html`
 
-  const published = a.value?.publishedAt ? new Date(a.value.publishedAt).toISOString() : undefined;
-  const modified  = a.value?.updatedAt   ? new Date(a.value.updatedAt).toISOString()   : published;
+  const rawImg = a.value?.image?.src || '/ogp.png'
+  const img    = absUrl(rawImg, base)
 
-  const siteName    = (pub as any).siteName || 'BOATNAVI報知';
-  const twitterSite = (pub as any).twitterSite;
+  const siteName    = (pub as any).siteName || 'BOATNAVI報知'
+  const twitterSite = (pub as any).twitterSite
+
+  const articleId = a.value?.id || id
+
+  // JST 正規化（公開日は articleId でフォールバック、更新日はそのまま）
+  const pubParts = jstParts(a.value?.publishedAt || null, articleId)
+  const modParts = jstParts(a.value?.updatedAt   || null, null)
+
+  const cxCategory = (pub as any).hocCategoryDefault || 'ボートレース'
+  const cxTags     = (pub as any).hocTagDefault || 'ボートレース'
 
   return {
     title: t,
     link: [{ rel: 'canonical', href: url }],
     meta: [
-      { name: 'description', content: d },
+      { key: 'desc', name: 'description', content: d },
 
-      { property: 'og:site_name', content: siteName },
-      { property: 'og:title', content: t },
-      { property: 'og:description', content: d },
-      { property: 'og:type', content: 'article' },
-      { property: 'og:url', content: url },
-      { property: 'og:locale', content: 'ja_JP' },
-      ...(img ? [{ property: 'og:image', content: img }] : []),
+      // OG
+      { key: 'og:site_name', property: 'og:site_name', content: siteName },
+      { key: 'og:title',     property: 'og:title',     content: t },
+      { key: 'og:desc',      property: 'og:description', content: d },
+      { key: 'og:type',      property: 'og:type',      content: 'article' },
+      { key: 'og:url',       property: 'og:url',       content: url },
+      { key: 'og:locale',    property: 'og:locale',    content: 'ja_JP' },
+      ...(img ? [{ key: 'og:image', property: 'og:image', content: img }] : []),
 
-      ...(published ? [{ property: 'article:published_time', content: published }] : []),
-      ...(modified  ? [{ property: 'article:modified_time',  content: modified  }] : []),
+      // Article times（JSTに統一、null時は出力しない）
+      ...(pubParts ? [{ key: 'art:pub', property: 'article:published_time', content: pubParts.isoJst }] : []),
+      ...(modParts ? [{ key: 'art:mod', property: 'article:modified_time',  content: modParts.isoJst }] : []),
 
-      { name: 'twitter:card', content: 'summary_large_image' },
-      { name: 'twitter:title', content: t },
-      { name: 'twitter:description', content: d },
-      ...(img ? [{ name: 'twitter:image', content: img }] : []),
-      ...(twitterSite ? [{ name: 'twitter:site', content: twitterSite }] : [])
-    ]
-  };
-});
+      // Twitter
+      { key: 'tw:card',  name: 'twitter:card',  content: 'summary_large_image' },
+      { key: 'tw:title', name: 'twitter:title', content: t },
+      { key: 'tw:desc',  name: 'twitter:description', content: d },
+      ...(img ? [{ key: 'tw:image', name: 'twitter:image', content: img }] : []),
+      ...(twitterSite ? [{ key: 'tw:site', name: 'twitter:site', content: twitterSite }] : []),
+
+      // cXense（絶対URLで image / key 付き）
+      { key: 'cx:cat',   name: 'cXenseParse:hoc-category',     content: cxCategory },
+      { key: 'cx:tag',   name: 'cXenseParse:hoc-tag',          content: cxTags, 'data-separator': ',' },
+      { key: 'cx:class', name: 'cXenseParse:pageclass',        content: 'article' },
+      { key: 'cx:type',  name: 'cXenseParse:hoc-articletype',  content: 'free' },
+      ...(img ? [{ key: 'cx:image', name: 'cXenseParse:recs:image', content: img }] : []),
+      ...(articleId ? [{ key: 'cx:haid', name: 'cXenseParse:hoc-articleid', content: articleId }] : []),
+      ...(articleId ? [{ key: 'cx:aid',  name: 'cXenseParse:articleid',     content: articleId }] : []),
+      ...(pubParts ? [{ key: 'cx:year',  name: 'cXenseParse:hoc-pubyear',   content: String(pubParts.year) }] : []),
+      ...(pubParts ? [{ key: 'cx:month', name: 'cXenseParse:hoc-pubmonth',  content: pubParts.pubmonth }] : []),
+      ...(pubParts ? [{ key: 'cx:day',   name: 'cXenseParse:hoc-pubday',    content: pubParts.pubday }] : []),
+    ],
+  }
+})
 
 type Item = {
   id: string
@@ -122,6 +206,19 @@ const latest = computed(() =>
 )
 
 
+// Piano: 記事に応じたタグ（カテゴリ、会員/非会員）を付与して init
+const { setTags, initWithJwtOnce } = usePiano()
+
+onMounted(() => {
+  // 例）カテゴリは「ボートレース」、ログインしていれば「会員」、なければ「非会員」
+  // 既存の Vuex/Pinia のユーザー状態があるなら、そこから判定してください。
+  
+  const tags = ['ボートレース','非会員']
+  //const isLoggedIn = !!(useState<any>('user')?.value || (getCurrentInstance() as any)?.proxy?.$store?.getters?.user)
+  //const tags = ['ボートレース', isLoggedIn ? '会員' : '非会員']
+  setTags(tags)
+  initWithJwtOnce()  // uidutil_tkn が無くても落ちずに初期化へ
+})
 </script>
 
 <template>
@@ -171,7 +268,8 @@ const latest = computed(() =>
           </figure>
           -->
 
-          <div class="article-body" v-html="a.bodyHtml"></div>
+          <!-- 本文に cXense コメントを挿入 -->
+          <div class="article-body" v-html="wrappedBodyHtml"></div>
 
           <!-- 関連記事（本文下） -->
           <div v-if="a" class="callout related">
@@ -209,12 +307,11 @@ const latest = computed(() =>
 </template>
 
 <style scoped>
-
 /* ========== ヘッダー周り ========== */
 .article-header{ margin: 1rem 0 1.25rem; }
 
 .article-title{
-  font-size: clamp(18px, 20px, 24px); /* 既存指定を保持 */
+  font-size: clamp(18px, 20px, 24px);
   line-height: 1.5;
   font-weight: 800;
   margin: .25rem 0 .5rem;
