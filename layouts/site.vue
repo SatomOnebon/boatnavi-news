@@ -65,6 +65,10 @@
   box-sizing:content-box;
   padding:0;
 }
+
+
+
+
 /* PC 時のみ追従（任意） */
 @media (min-width:1024px){
   .site-aside{ position:sticky; top:16px; }
@@ -89,4 +93,6 @@
   background:#f7fafc;
   border-bottom:1px solid #e5e7eb;
 }
+
+
 </style>

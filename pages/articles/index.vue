@@ -114,10 +114,10 @@ watch(() => route.query.page, () => {
     </template>
 
     <template #aside>
-      <div class="callout">
-        <strong>このページについて</strong>
-        <p class="subheader" style="margin:.5rem 0 0">----</p>
+      <div class="card">
+          <NuxtLink to="/howto" class="banner-link"><img src="/images/howto.jpg" alt="boatnaviの使い方" /></NuxtLink>
       </div>
+      <div id="right_access_ranking"></div>
     </template>
   </NuxtLayout>
 </template>
@@ -134,4 +134,20 @@ h1.page-title{
 .pagination .disabled { pointer-events:none; opacity:.4 }
 .current-page { margin:0 .75rem; color:#6b7280 }
 #articles-top { scroll-margin-top: 128px; }
+
+.site-aside a.banner-link{
+    display: block;
+    background-color: #FFF;
+  }
+  .site-aside a.banner-link img{
+    display: block;
+    opacity: 1;
+  }
+  .site-aside  a.banner-link:hover img,
+  .site-aside a.banner-link:focus img{
+    opacity: 0.7;
+  }
+  .site-aside a.banner-link:active img{
+    opacity: 0.9;
+  }
 </style>

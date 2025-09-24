@@ -5,8 +5,13 @@ definePageMeta({ layout: false }) // ← 自動レイアウトを無効化
 const route = useRoute()
 const { public: pub } = useRuntimeConfig()
 
-const raw = Array.isArray(route.params.slug) ? route.params.slug.join('/') : String(route.params.slug || '')
-const id = raw.replace(/\.html$/i, '')
+// ★ ここを computed 化（watch の警告対策 & ルート遷移追従）
+const slug = computed(() =>
+  Array.isArray(route.params.slug)
+    ? route.params.slug.join('/')
+    : String(route.params.slug || '')
+)
+const id = computed(() => slug.value.replace(/\.html$/i, ''))
 
 type Article = {
   id: string
@@ -20,8 +25,8 @@ type Article = {
 }
 
 const { data, pending, error } = await useFetch<Article | null>(
-  () => `/news-api/articles/${encodeURIComponent(id)}`,
-  { key: () => `article-${id}`, server: true, watch: [id] }
+  () => `/news-api/articles/${encodeURIComponent(id.value)}`,
+  { key: () => `article-${id.value}`, server: true, watch: [id] }
 )
 const a = computed(() => data.value || null)
 
@@ -127,7 +132,7 @@ useHead(() => {
   const t = a.value?.title || '記事'
   const d = description.value
   const base = pub.siteUrl.replace(/\/+$/, '')
-  const url  = `${base}/articles/${encodeURIComponent(id)}.html`
+  const url  = `${base}/articles/${encodeURIComponent(id.value)}.html`
 
   const rawImg = a.value?.image?.src || '/ogp.png'
   const img    = absUrl(rawImg, base)
@@ -135,7 +140,7 @@ useHead(() => {
   const siteName    = (pub as any).siteName || 'BOATNAVI報知'
   const twitterSite = (pub as any).twitterSite
 
-  const articleId = a.value?.id || id
+  const articleId = a.value?.id || id.value
 
   // JST 正規化（公開日は articleId でフォールバック、更新日はそのまま）
   const pubParts = jstParts(a.value?.publishedAt || null, articleId)
@@ -202,20 +207,14 @@ const { data: latestRes } = await useFetch<ListRes>(
   { key: 'latest-articles', server: true }
 )
 const latest = computed(() =>
-  (latestRes.value?.items || []).filter(it => it.id !== id)
+  (latestRes.value?.items || []).filter(it => it.id !== id.value)
 )
-
 
 // Piano: 記事に応じたタグ（カテゴリ、会員/非会員）を付与して init
 const { setTags, initWithJwtOnce } = usePiano()
 
 onMounted(() => {
-  // 例）カテゴリは「ボートレース」、ログインしていれば「会員」、なければ「非会員」
-  // 既存の Vuex/Pinia のユーザー状態があるなら、そこから判定してください。
-  
   const tags = ['ボートレース','非会員']
-  //const isLoggedIn = !!(useState<any>('user')?.value || (getCurrentInstance() as any)?.proxy?.$store?.getters?.user)
-  //const tags = ['ボートレース', isLoggedIn ? '会員' : '非会員']
   setTags(tags)
   initWithJwtOnce()  // uidutil_tkn が無くても落ちずに初期化へ
 })
@@ -301,7 +300,10 @@ onMounted(() => {
 
     <!-- サイドバー（aside slot） -->
     <template #aside>
-      <NuxtLink to="/articles" class="button expanded hollow" style="margin-top:.5rem;">一覧へ</NuxtLink>
+      <div class="card">
+          <NuxtLink to="/howto" class="banner-link" ><img src="/images/howto.jpg" alt="boatnaviの使い方" /></NuxtLink>
+      </div>
+      <div id="right_access_ranking"></div>
     </template>
   </NuxtLayout>
 </template>
@@ -361,4 +363,20 @@ onMounted(() => {
   .article-title{ font-size: clamp(18px, 4.8vw, 22px); }
   .article-meta{ font-size: 12.5px; }
 }
+
+.site-aside a.banner-link{
+    display: block;
+    background-color: #FFF;
+  }
+  .site-aside a.banner-link img{
+    display: block;
+    opacity: 1;
+  }
+  .site-aside  a.banner-link:hover img,
+  .site-aside a.banner-link:focus img{
+    opacity: 0.7;
+  }
+  .site-aside a.banner-link:active img{
+    opacity: 0.9;
+  }
 </style>

@@ -24,9 +24,27 @@ export default defineNuxtConfig({
   routeRules: {
     '/articles':   { isr: 120 },
     '/articles/**':{ isr: 300 },
-    // ★ 静的アセットは超長期キャッシュ（CLS抑止のためCSSを瞬時取得）
-    '/_nuxt/**':   { headers: { 'cache-control': 'public, max-age=31536000, immutable' } },
   },
+  
+  nitro: {
+    preset: 'aws-lambda',
+    routeRules: {
+      '/_nuxt/**': {
+        headers: { 'cache-control': 'public, max-age=31536000, immutable' }
+      },
+      '/articles': {
+        headers: {
+          'cache-control': 'public, max-age=30, s-maxage=120, stale-while-revalidate=30, stale-if-error=86400'
+        }
+      },
+      '/articles/**': {
+        headers: {
+          'cache-control': 'public, max-age=60, s-maxage=300, stale-while-revalidate=30, stale-if-error=86400'
+        }
+      }
+    }
+  },
+
 
   runtimeConfig: {
     newsListApi: process.env.NEWS_LIST_API,
