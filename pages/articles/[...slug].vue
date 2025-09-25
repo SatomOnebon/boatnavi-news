@@ -30,10 +30,18 @@ const { data, pending, error } = await useFetch<Article | null>(
 )
 const a = computed(() => data.value || null)
 
+// 置き換え推奨：human()
 function human(iso?: string) {
   if (!iso) return ''
-  const d = new Date(iso), z=(n:number)=>n<10?'0'+n:''+n
-  return `${d.getFullYear()}/${z(d.getMonth()+1)}/${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}`
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return ''
+  const dtf = new Intl.DateTimeFormat('ja-JP', {
+    timeZone: 'Asia/Tokyo',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false
+  })
+  const p = Object.fromEntries(dtf.formatToParts(d).map(x => [x.type, x.value]))
+  return `${p.year}/${p.month}/${p.day} ${p.hour}:${p.minute}`
 }
 
 // 先頭15文字で省略（サロゲートペア対応）
@@ -240,7 +248,7 @@ onMounted(() => {
           <NuxtLink class="button hollow tiny" to="/articles" style="margin-left:.5rem">一覧へ戻る</NuxtLink>
         </div>
 
-        <article v-else>
+        <article :key="id" v-else>
           <!-- パンくず（記事タイトルの前） -->
           <nav class="breadcrumb" aria-label="パンくずリスト">
             <ul class="breadcrumb__list" role="list">
@@ -284,24 +292,29 @@ onMounted(() => {
       </NuxtErrorBoundary>
 
       <!-- 本文の直後に最新ニュース -->
+   
       <section v-if="latest?.length" class="latest-block">
         <header class="section-head" style="margin-bottom:12px">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
-            <path d="M6 2h9a3 3 0 0 1 3 3v14a3 3 0 0 1-3 3H6V2zm2 4h8v2H8V6zm0 4h8v2H8v-2zm0 4h8v2H8v-2z"/>
-            <path d="M4 2h2v20H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/>
-          </svg>
-          <h2 class="section-head__title">最新ニュース</h2>
+          <h2 class="section-head__title news-title">最新ニュース</h2>
         </header>
+        <ClientOnly>
+        <NewsListRows :items="latest" :key="`latest-${id}`" />
+      </ClientOnly>
+        <p style="text-align:center; margin:30px 0 0;">
+ 
+          <NuxtLink to="/articles" class="button news-list-button">ニュース一覧へ</NuxtLink>
+        </p>
 
-        <NewsListRows :items="latest" />
-        <NuxtLink to="/articles" class="button expanded hollow">一覧へ</NuxtLink>
       </section>
+   
     </template>
 
     <!-- サイドバー（aside slot） -->
     <template #aside>
+      <div class="stack">
       <div class="card">
-          <NuxtLink to="/howto" class="banner-link" ><img src="/images/howto.jpg" alt="boatnaviの使い方" /></NuxtLink>
+          <NuxtLink to="/howto" external class="banner-link" ><img src="/images/howto.jpg" alt="boatnaviの使い方" /></NuxtLink>
+      </div>
       </div>
       <div id="right_access_ranking"></div>
     </template>
@@ -358,6 +371,35 @@ onMounted(() => {
 /* 最新ニュースブロック */
 .latest-block{ margin-top: 24px; }
 
+.news-title{
+  padding-left:30px;
+  padding-top:3px;
+  padding-bottom:3px;
+  background-image: url(/images/icon_news_white.png);
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.news-list-button{
+  display:block;
+  max-width:300px;
+  margin:0 auto 20px auto;
+  border-radius: 20px;
+  background-color: #3C0C00;
+
+  transition:background-color 0.5s;
+
+}
+.news-list-button:hover,
+.news-list-button:focus{
+  background-color: rgb(125.5,25.0,0);
+}
+.news-list-button:active{
+  background-color: #3C0C00;
+}
+
+
+
 /* モバイル微調整 */
 @media (max-width: 640px){
   .article-title{ font-size: clamp(18px, 4.8vw, 22px); }
@@ -378,5 +420,12 @@ onMounted(() => {
   }
   .site-aside a.banner-link:active img{
     opacity: 0.9;
+  }
+
+  .stack .card{
+    border:0;
+  }
+  .stack .card .banner-link{
+    margin:0 auto;
   }
 </style>

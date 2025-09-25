@@ -91,7 +91,7 @@ watch(() => route.query.page, () => {
       </nav>
 
       <!-- セクション見出し -->
-      <h1 class="page-title">ニュース一覧</h1>
+      <h1 class="page-title">ニュース</h1>
       <!-- 一覧の先頭アンカー -->
       <div id="articles-top" tabindex="-1"></div>
       <header class="section-head">
@@ -103,7 +103,9 @@ watch(() => route.query.page, () => {
       <div v-else-if="error" class="callout alert">一覧の取得に失敗しました。</div>
 
       <!-- 横並びリスト -->
-      <NewsListRows :items="items" />
+      <ClientOnly>
+      <NewsListRows :items="items" :key="`latest-${id}`"  />
+      </ClientOnly>
 
       <!-- ページネーション -->
       <nav class="pagination text-center" role="navigation" aria-label="Pagination">
@@ -114,8 +116,10 @@ watch(() => route.query.page, () => {
     </template>
 
     <template #aside>
+      <div class="stack">
       <div class="card">
-          <NuxtLink to="/howto" class="banner-link"><img src="/images/howto.jpg" alt="boatnaviの使い方" /></NuxtLink>
+          <NuxtLink to="/howto" external class="banner-link"><img src="/images/howto.jpg" alt="boatnaviの使い方" /></NuxtLink>
+      </div>
       </div>
       <div id="right_access_ranking"></div>
     </template>
@@ -129,6 +133,11 @@ h1.page-title{
   line-height: 1.5;
   font-weight: 800;
   margin: .25rem 0 .5rem;
+  color:#0b2f4a;
+  background-image: url(/images/icon_news_navy.png);
+  background-size: contain;
+  padding-left:35px;
+  background-repeat: no-repeat;
 }
 .pagination { margin: 20px 0; }
 .pagination .disabled { pointer-events:none; opacity:.4 }
@@ -149,5 +158,12 @@ h1.page-title{
   }
   .site-aside a.banner-link:active img{
     opacity: 0.9;
+  }
+
+  .stack .card{
+    border:0;
+  }
+  .stack .card .banner-link{
+    margin:0 auto;
   }
 </style>
