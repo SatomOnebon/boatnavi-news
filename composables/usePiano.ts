@@ -1,74 +1,52 @@
 // composables/usePiano.ts
-declare global {
-  interface Window {
-    tp?: any[];
-  }
-}
-
-// uidutil_tkn が無い環境でも落とさない
-type JwtFn = (cb: (jwt?: string) => void) => void
-function getUidUtil(): JwtFn | undefined {
-  const anyGlobal = globalThis as any
-  const fn = anyGlobal?.uidutil_tkn
-  return typeof fn === 'function' ? (fn as JwtFn) : undefined
-}
+let inited = false
+let queuedTags: string[] = []
 
 export function usePiano() {
-  const inited = useState<boolean>('piano_inited', () => false)
-
-  function ensureTp() {
-    if (typeof window === 'undefined') return
-    window.tp = window.tp || []
+  const setTags = (tags: string[]) => {
+    queuedTags = tags
+    if (process.client) (window.tp = window.tp || []).push(['setTags', tags])
   }
 
-  function setTags(tags: string[]) {
-    if (typeof window === 'undefined') return
-    ensureTp()
-    window.tp!.push(['setTags', tags])
-  }
+  const initWithJwtOnce = async (getJwt?: () => Promise<string | ''>) => {
+    if (inited || process.server) return
+    const tp: any[] = (window.tp = window.tp || [])
 
-  // JWT があっても無くても初期化できる安全版
-  async function initWithJwtOnce() {
-    if (typeof window === 'undefined') return
-    if (inited.value) return
-    ensureTp()
+    // 1) 常にプロバイダ設定を先に push（ロード順の安定化）
+    tp.push(['setUseTinypassAccounts', false])
+    tp.push(['setUsePianoIdUserProvider', false])
+    tp.push(['setUsePianoIdLiteUserProvider', true])
 
+    // 2) タグ（指定が無ければ既定）
+    const tags = queuedTags.length ? queuedTags : ['ボートレース', '非会員']
+    tp.push(['setTags', tags])
+
+    // 3) JWT（任意）
+    let jwt = ''
     try {
-      const uidutil = getUidUtil()
-
-      const jwt: string | undefined = await new Promise((resolve) => {
-        if (!uidutil) return resolve(undefined) // ← ここで即フォールバック
-        try {
-          uidutil((token = '') => resolve(token || undefined))
-        } catch (e) {
-          console.warn('uidutil_tkn call failed:', e)
-          resolve(undefined)
-        }
-      })
-
-      if (jwt) {
-        window.tp!.push(['setExternalJWT', jwt])
+      if (typeof getJwt === 'function') jwt = (await getJwt()) || ''
+      else if (typeof (window as any).uidutil_tkn === 'function') {
+        jwt = await new Promise<string>(res => {
+          try { (window as any).uidutil_tkn((t?: string) => res(t || '')) } catch { res('') }
+        })
       }
+    } catch {}
 
-      // Tinypass/PianoID のプロバイダ設定（Lite を使う）
-      window.tp!.push(['setUseTinypassAccounts', false])
-      window.tp!.push(['setUsePianoIdUserProvider', false])
-      window.tp!.push(['setUsePianoIdLiteUserProvider', true])
+    if (jwt) tp.push(['setExternalJWT', jwt])
 
-      // Piano 本体側がロードされると init キューが処理される
-      window.tp!.push(['init', function () {
-        try {
-          window.tp!.experience.init()
-          window.tp!.pianoId.init()
-          inited.value = true
-        } catch (e) {
-          console.warn('Piano init error:', e)
-        }
-      }])
-    } catch (e) {
-      console.warn('initWithJwtOnce failed:', e)
-    }
+    // 4) init（存在チェックをしてから実行）
+    tp.push(['init', () => {
+      try {
+        if (tp.experience?.init) tp.experience.init()
+        // pianoId は provider 設定済みでも遅れて生えることがある → 安全に
+        if (jwt && tp.pianoId?.init) tp.pianoId.init()
+      } catch (e) {
+        console.warn('[Piano] init error (ignored):', e)
+      }
+    }])
+
+    inited = true
   }
 
-  return { setTags, initWithJwtOnce, inited }
+  return { setTags, initWithJwtOnce }
 }

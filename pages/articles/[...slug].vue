@@ -283,11 +283,21 @@ onMounted(() => {
             <strong>関連記事</strong>
             <ul class="no-bullet" v-if="a.related?.length">
               <li v-for="(r, i) in a.related" :key="i" class="related__item">
-                <a :href="r.url" target="_blank" rel="noopener">{{ r.title }}</a>
+                <a :href="r.url"  rel="noopener">{{ r.title }}</a>
               </li>
             </ul>
             <p v-else class="subheader" style="margin:.5rem 0 0;">—</p>
           </div>
+
+<ClientOnly>
+  <Adsense
+    class="adsbygoogle"
+    data-ad-client="ca-pub-3076785709839281"
+    data-ad-slot="9132319872"
+    data-ad-format="auto"
+    :data-full-width-responsive="true"
+  />
+</ClientOnly>
         </article>
       </NuxtErrorBoundary>
 
@@ -316,7 +326,9 @@ onMounted(() => {
           <NuxtLink to="/howto" external class="banner-link" ><img src="/images/howto.jpg" alt="boatnaviの使い方" /></NuxtLink>
       </div>
       </div>
-      <div id="right_access_ranking"></div>
+      <div id="right_access_ranking">
+      <div id="boat-ranking"></div>
+      </div>
     </template>
   </NuxtLayout>
 </template>

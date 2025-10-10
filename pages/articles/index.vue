@@ -121,7 +121,9 @@ watch(() => route.query.page, () => {
           <NuxtLink to="/howto" external class="banner-link"><img src="/images/howto.jpg" alt="boatnaviの使い方" /></NuxtLink>
       </div>
       </div>
-      <div id="right_access_ranking"></div>
+      <div id="right_access_ranking">
+      <div id="boat-ranking"></div>
+      </div>
     </template>
   </NuxtLayout>
 </template>
