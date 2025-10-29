@@ -58,7 +58,7 @@ function jpDateTime(iso?: string) {
   width:96px; aspect-ratio:1/1; border-radius:4px; overflow:hidden;
   background:#f2f2f2; flex:0 0 auto;
 }
-.news-row__thumb img{ width:100%; height:100%; object-fit:cover; }
+.news-row__thumb img{ width:100%; height:100%; object-fit:cover;object-position: center top; }
 
 /* テキスト */
 .news-row__body{ min-width:0; display:flex; flex-direction:column; justify-content:center; }

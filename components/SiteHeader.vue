@@ -69,9 +69,6 @@
             <NuxtLink to="/" external class="link" exact-active-class="is-current" role="menuitem">ホーム</NuxtLink>
           </li>
 
-          <li role="none">
-            <NuxtLink to="/articles" class="link" active-class="is-current" role="menuitem">ニュース</NuxtLink>
-          </li>
 
           <li role="none">
             <a class="link" :href="`/day_race_list/${todayStr}`" role="menuitem">本日のレース</a>
@@ -80,6 +77,13 @@
           <li role="none">
             <a class="link" href="/racerranking/all" role="menuitem">賞金ランキング</a>
           </li>
+
+
+          <li role="none">
+            <NuxtLink to="/articles" class="link" active-class="is-current" role="menuitem">ニュース</NuxtLink>
+          </li>
+
+          
         </ul>
       </div>
     </nav>
