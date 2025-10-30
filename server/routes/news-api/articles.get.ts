@@ -1,5 +1,6 @@
 // server/routes/news-api/articles.get.ts
 import { getQuery, setHeader, setResponseStatus } from 'h3'
+import { removeBoatracePrefix } from '../../utils/headline'
 
 type Size = { url?: string; Width?: number; Height?: number }
 type UpArticle = {
@@ -55,7 +56,7 @@ export default defineEventHandler(async (event) => {
       const pick = pickListImage(a.image, imgBase) // 軽量優先＋絶対URL化
       return {
         id: a.news_item_id,
-        title: a.headline || '',
+        title: removeBoatracePrefix(a.headline || ''),
         summary: (a.body?.[0] || '').replace(/\s+/g, ' ').slice(0, 120),
         publishedAt: toIsoJst(a.date_published),
         updatedAt: toIsoJst(a.date_modified || a.date_published),

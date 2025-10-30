@@ -1,4 +1,6 @@
 // server/routes/news-api/articles/[id].get.ts
+import { removeBoatracePrefix } from '../../../utils/headline'
+
 type UpDetail = {
   news_item_id: string
   date_published?: string
@@ -38,13 +40,13 @@ export default defineEventHandler(async (event) => {
 
   return {
     id: up.news_item_id,
-    title: up.headline || '',
+    title: removeBoatracePrefix(up.headline || ''),
     publishedAt: toIsoJst(up.date_published),
     updatedAt: toIsoJst(up.date_modified || up.date_published),
     bodyHtml: rewriteHtml(rawBody, imgBase),
     image: hero || undefined,
     related: (up.related_links || []).map(r => ({
-      title: r.title || '',
+      title: removeBoatracePrefix(r.title || ''),
       url: r.url || '',
       thumb: absolutize(r.thumb || '', imgBase)
     }))
