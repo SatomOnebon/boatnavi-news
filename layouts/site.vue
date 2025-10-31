@@ -20,6 +20,20 @@
 
           <aside v-if="$slots.aside" class="site-aside">
             <slot name="aside" />
+            
+            <div class="ad-rect-wrap">
+              <ClientOnly>
+                <Adsense
+                  v-if="!isMobile"
+                  :key="$route.fullPath"
+                  data-ad-client="ca-pub-3076785709839281"
+                  data-ad-slot="1168603868"
+                  :collapseIfNoFill="true"
+                  :collapseAfter="1500"
+                  style="display:inline-block;width:300px;height:600px"
+                />
+              </ClientOnly>
+            </div>
           </aside>
         </div>
       </div>
@@ -32,6 +46,17 @@
 
 <script setup lang="ts">
 // components は自動インポート
+const isMobile = ref(false)
+
+onMounted(() => {
+  if (process.client) {
+    const mq = window.matchMedia('(max-width: 1023px)')
+    isMobile.value = mq.matches
+    mq.addEventListener('change', (e) => {
+      isMobile.value = e.matches
+    })
+  }
+})
 </script>
 
 <style scoped>
@@ -92,7 +117,18 @@
 .site-subheader{
   background:#f7fafc;
   border-bottom:1px solid #e5e7eb;
+}/* レイアウトの <style scoped> に追加 */
+.ad-rect-wrap{
+  display:flex; justify-content:center;
+  /* 右カラムが300pxなので基本そのまま。スマホでは縮める */
 }
-
+@media (max-width:1023px){
+  .ad-rect-wrap > .adsbygoogle{
+    /* スマホ時は幅を画面に合わせて縮小（高さはAdSense側で調整） */
+    width:100% !important;
+    height:auto !important;
+    display:block !important;
+  }
+}
 
 </style>
